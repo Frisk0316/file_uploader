@@ -25,6 +25,7 @@ const state = {
 const dom = Object.fromEntries([
   "connection-state", "connection-form", "owner", "repo", "branch", "token",
   "connect-button", "disconnect-button", "workspace", "upload-form", "files",
+  "upload-dropzone", "selected-files",
   "retention", "custom-expiration-label", "custom-expiration", "upload-button",
   "upload-progress", "refresh-button", "download-selected-button", "delete-expired-button",
   "search-form", "query", "date-from", "date-to", "clear-search-button", "select-all",
@@ -36,6 +37,10 @@ dom["files"].setAttribute("accept", ALLOWED_EXTENSIONS.join(","));
 dom["connection-form"].addEventListener("submit", connect);
 dom["disconnect-button"].addEventListener("click", disconnect);
 dom["upload-form"].addEventListener("submit", uploadFiles);
+dom["files"].addEventListener("change", updateSelectedFiles);
+dom["upload-dropzone"].addEventListener("dragover", handleDragOver);
+dom["upload-dropzone"].addEventListener("dragleave", () => dom["upload-dropzone"].classList.remove("drag-over"));
+dom["upload-dropzone"].addEventListener("drop", handleDrop);
 dom["retention"].addEventListener("change", updateRetentionInput);
 dom["refresh-button"].addEventListener("click", () => runAction(refreshFiles));
 dom["download-selected-button"].addEventListener("click", downloadSelected);
@@ -79,6 +84,8 @@ function disconnect() {
   state.files = [];
   state.visibleFiles = [];
   state.selectedPaths.clear();
+  dom["upload-form"].reset();
+  updateSelectedFiles();
   dom["workspace"].hidden = true;
   dom["disconnect-button"].hidden = true;
   dom["connection-state"].textContent = "尚未連線";
@@ -252,6 +259,7 @@ async function uploadFiles(event) {
   setBusy(dom["upload-button"], false, "開始上傳");
   updateWriteControls();
   dom["upload-form"].reset();
+  updateSelectedFiles();
   updateRetentionInput();
   try {
     await refreshFiles();
@@ -260,6 +268,26 @@ async function uploadFiles(event) {
     return;
   }
   setStatus(`已成功上傳 ${uploaded}/${files.length} 個檔案。`, uploaded !== files.length);
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = dom["files"].disabled ? "none" : "copy";
+  if (!dom["files"].disabled) dom["upload-dropzone"].classList.add("drag-over");
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  dom["upload-dropzone"].classList.remove("drag-over");
+  if (dom["files"].disabled) return;
+  dom["files"].files = event.dataTransfer.files;
+  dom["files"].dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function updateSelectedFiles() {
+  dom["selected-files"].textContent = dom["files"].files.length
+    ? `已選擇 ${dom["files"].files.length} 個文件`
+    : "尚未選擇文件";
 }
 
 async function downloadSelected() {
@@ -352,6 +380,7 @@ function updateRetentionInput() {
 function updateWriteControls() {
   const readOnly = !state.token;
   dom["files"].disabled = readOnly;
+  dom["upload-dropzone"].classList.toggle("disabled", readOnly);
   dom["retention"].disabled = readOnly;
   dom["upload-button"].disabled = readOnly;
   updateRetentionInput();

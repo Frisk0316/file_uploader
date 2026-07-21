@@ -66,8 +66,9 @@
 
         <form id="upload-form">
           <div class="upload-grid">
-            <label class="file-picker">
-              選擇一個或多個文件
+            <label id="upload-dropzone" class="file-picker drop-zone">
+              <span class="drop-title">拖曳文件到這裡，或點擊選擇</span>
+              <span id="selected-files" class="selected-files">尚未選擇文件</span>
               <input id="files" name="files" type="file" multiple required accept=".png,.jpg,.jpeg,.xlsx,.xls,.csv,.pptx,.ppt,.pdf,.py,.txt,.md,.docx,.doc,.json,.xml,.yaml,.yml">
             </label>
             <label>

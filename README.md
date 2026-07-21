@@ -4,7 +4,7 @@
 
 ## 已完成
 
-- 多檔依序上傳，保留原始檔名
+- 點選或拖曳多檔依序上傳，保留原始檔名
 - 支援 PNG、JPG、Excel、CSV、PowerPoint、PDF、Python、純文字、Markdown、Word、JSON、XML、YAML
 - 依上傳日期或檔名關鍵字搜尋
 - 單檔及多選批次下載
@@ -31,6 +31,16 @@
 
 網站 repo 公開不會洩漏 private 文件；文件讀寫仍需要你在瀏覽器輸入有權限的 PAT。
 
+## 建立 Private 文件 Repo
+
+1. 登入 GitHub，按右上角 **＋ → New repository**。
+2. 輸入名稱，例如 `file_uploader_storage`。
+3. Visibility 選 **Private**。
+4. 勾選 **Add a README file**，讓 `main` branch 立即存在。
+5. 按 **Create repository**。這個文件 repo 不需要啟用 GitHub Pages。
+
+網站程式留在公開的 `file_uploader` repo；實際上傳的文件只會寫入這個 private repo。
+
 ## 建立 PAT
 
 在 GitHub 的 **Settings → Developer settings → Personal access tokens → Fine-grained tokens** 建立 token：
@@ -41,6 +51,14 @@
 - 不要把 token 寫進任何檔案、commit 或瀏覽器儲存空間
 
 官方說明：<https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens>
+
+## 開始上傳文件
+
+1. 開啟 <https://frisk0316.github.io/file_uploader/>。
+2. Owner 輸入 `Frisk0316`。
+3. Repo 輸入剛建立的 private 文件 repo 名稱，例如 `file_uploader_storage`。
+4. Branch 輸入 `main`，貼上只授權該文件 repo 的 fine-grained PAT，再按 **連線**。
+5. 將文件拖曳到上傳區，或點擊選擇文件；設定保留期限後按 **開始上傳**。
 
 ## 部署 GitHub Pages
 
