@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.github.com; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <title>文件轉運站</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">GitHub Pages × GitHub Repo</p>
+      <h1>文件轉運站</h1>
+      <p class="subtitle">在這台電腦上傳，到另一台電腦下載。</p>
+    </div>
+    <span id="connection-state" class="badge">尚未連線</span>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="connection-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="connection-title">連線設定</h2>
+          <p>建議使用 private 儲存 repo，並建立只限該 repo 的 fine-grained PAT。</p>
+        </div>
+      </div>
+
+      <form id="connection-form" class="connection-grid" autocomplete="off">
+        <label>
+          GitHub 擁有者
+          <input id="owner" name="owner" required maxlength="39" placeholder="octocat" spellcheck="false">
+        </label>
+        <label>
+          儲存 Repo
+          <input id="repo" name="repo" required maxlength="100" placeholder="my-documents" spellcheck="false">
+        </label>
+        <label>
+          Branch
+          <input id="branch" name="branch" required maxlength="255" value="main" spellcheck="false">
+        </label>
+        <label>
+          Fine-grained PAT
+          <input id="token" name="token" type="password" autocomplete="new-password" placeholder="公開 repo 唯讀時可留空" spellcheck="false">
+        </label>
+        <div class="form-actions">
+          <button id="connect-button" class="primary" type="submit">連線</button>
+          <button id="disconnect-button" type="button" hidden>清除連線</button>
+        </div>
+      </form>
+
+      <p class="security-note">PAT 只保留在目前分頁的記憶體；重新整理、關閉分頁或清除連線後就會消失。</p>
+    </section>
+
+    <div id="workspace" hidden>
+      <section class="panel" aria-labelledby="upload-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="upload-title">上傳文件</h2>
+            <p>每個檔案上限 20 MiB；依序上傳，避免 GitHub commit 衝突。</p>
+          </div>
+        </div>
+
+        <form id="upload-form">
+          <div class="upload-grid">
+            <label class="file-picker">
+              選擇一個或多個文件
+              <input id="files" name="files" type="file" multiple required accept=".png,.jpg,.jpeg,.xlsx,.xls,.csv,.pptx,.ppt,.pdf,.py,.txt,.md,.docx,.doc,.json,.xml,.yaml,.yml">
+            </label>
+            <label>
+              保留期限
+              <select id="retention" name="retention">
+                <option value="keep">永久保留</option>
+                <option value="7">7 天</option>
+                <option value="30">30 天</option>
+                <option value="90">90 天</option>
+                <option value="custom">指定日期</option>
+              </select>
+            </label>
+            <label id="custom-expiration-label" hidden>
+              到期日
+              <input id="custom-expiration" name="customExpiration" type="date">
+            </label>
+          </div>
+          <button id="upload-button" class="primary" type="submit">開始上傳</button>
+        </form>
+        <div id="upload-progress" class="progress-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="files-title">
+        <div class="section-heading files-heading">
+          <div>
+            <h2 id="files-title">文件清單</h2>
+            <p id="file-count">0 個檔案</p>
+          </div>
+          <div class="toolbar">
+            <button id="refresh-button" type="button">重新整理</button>
+            <button id="download-selected-button" type="button" disabled>下載選取項目</button>
+            <button id="delete-expired-button" class="danger" type="button" disabled>清除到期檔案</button>
+          </div>
+        </div>
+
+        <form id="search-form" class="search-grid" role="search">
+          <label>
+            關鍵字
+            <input id="query" name="query" type="search" placeholder="搜尋檔名" autocomplete="off">
+          </label>
+          <label>
+            起始日期
+            <input id="date-from" name="dateFrom" type="date">
+          </label>
+          <label>
+            結束日期
+            <input id="date-to" name="dateTo" type="date">
+          </label>
+          <button type="submit">搜尋</button>
+          <button id="clear-search-button" type="button">清除條件</button>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col"><input id="select-all" type="checkbox" aria-label="選取全部顯示中的檔案"></th>
+                <th scope="col">檔名</th>
+                <th scope="col">大小</th>
+                <th scope="col">上傳時間</th>
+                <th scope="col">保留期限</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody id="file-list"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </main>
+
+  <footer>
+    <p>刪除會從目前 branch 移除檔案，但 Git 歷史仍可能保留舊內容；敏感文件請使用 private repo。</p>
+  </footer>
+</body>
+</html>
