@@ -5,7 +5,7 @@
 ## 已完成
 
 - 點選或拖曳多檔依序上傳，保留原始檔名
-- 支援 PNG、JPG、Excel、CSV、PowerPoint、PDF、Python、純文字、Markdown、Word、JSON、XML、YAML
+- 支援 PNG、JPG、Excel、CSV、PowerPoint、PDF、Python、純文字、Markdown、Word、JSON、XML、YAML、MP3、HTML、ZIP
 - 依上傳日期或檔名關鍵字搜尋
 - 單檔及多選批次下載
 - 永久、7 天、30 天、90 天或指定日期保留
@@ -16,7 +16,7 @@
 ## 限制
 
 - 每個檔案上限 20 MiB。
-- 暫不支援 MP4、MP3、ZIP 或選取後打包 ZIP。
+- 暫不支援 MP4 或選取後打包 ZIP。
 - 純 GitHub Pages 沒有背景排程；到期檔案要登入網站後按「清除到期檔案」。
 - Git 的刪除 commit 不會自動清除歷史版本。敏感文件應使用 private repo；需要徹底移除時必須另外重寫 Git 歷史。
 - 批次下載可能觸發瀏覽器的「允許多個檔案下載」提示。
@@ -45,10 +45,13 @@
 
 在 GitHub 的 **Settings → Developer settings → Personal access tokens → Fine-grained tokens** 建立 token：
 
-- Repository access：只選文件 repo
+- Resource owner：選 private 文件 repo 的擁有者，例如 `Frisk0316`
+- Repository access：選 **Only select repositories**，並勾選剛建立的 private 文件 repo
 - Repository permissions → Contents：Read and write
 - 設定有效期限，例如 30 或 90 天
 - 不要把 token 寫進任何檔案、commit 或瀏覽器儲存空間
+
+若 private 文件 repo 是在 token 建立後才新增，必須編輯或重建 token，把新 repo 加入 Repository access。Public repo 可匿名讀取，因此「改成 public 就能連線」通常表示原本的 PAT 沒有 private repo 權限。
 
 官方說明：<https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens>
 

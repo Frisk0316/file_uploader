@@ -1,6 +1,8 @@
 import {
   ALLOWED_EXTENSIONS,
+  buildClipboardFileName,
   buildStoragePath,
+  describeConnectionError,
   encodeRepoPath,
   formatBytes,
   isExpired,
@@ -41,6 +43,7 @@ dom["files"].addEventListener("change", updateSelectedFiles);
 dom["upload-dropzone"].addEventListener("dragover", handleDragOver);
 dom["upload-dropzone"].addEventListener("dragleave", () => dom["upload-dropzone"].classList.remove("drag-over"));
 dom["upload-dropzone"].addEventListener("drop", handleDrop);
+document.addEventListener("paste", handlePaste);
 dom["retention"].addEventListener("change", updateRetentionInput);
 dom["refresh-button"].addEventListener("click", () => runAction(refreshFiles));
 dom["download-selected-button"].addEventListener("click", downloadSelected);
@@ -70,9 +73,10 @@ async function connect(event) {
     updateWriteControls();
     setStatus(state.token ? "已連線，可上傳與刪除。" : "已唯讀連線公開 repo；上傳與刪除需要 PAT。");
   } catch (error) {
+    const message = describeConnectionError(error.status, Boolean(state.token), readableError(error));
     state.config = null;
     state.token = "";
-    setStatus(readableError(error), true);
+    setStatus(message, true);
   } finally {
     setBusy(dom["connect-button"], false, "連線");
   }
@@ -175,7 +179,7 @@ function createFileRow(file, today) {
   checkbox.addEventListener("change", () => {
     if (checkbox.checked) state.selectedPaths.add(file.path);
     else state.selectedPaths.delete(file.path);
-    renderFiles(state.visibleFiles);
+    updateSelectionControls();
   });
   selectionCell.append(checkbox);
 
@@ -206,7 +210,10 @@ function toggleSelectAll() {
     if (dom["select-all"].checked) state.selectedPaths.add(file.path);
     else state.selectedPaths.delete(file.path);
   }
-  renderFiles(state.visibleFiles);
+  for (const checkbox of dom["file-list"].querySelectorAll('input[type="checkbox"]')) {
+    checkbox.checked = dom["select-all"].checked;
+  }
+  updateSelectionControls();
 }
 
 async function uploadFiles(event) {
@@ -280,14 +287,67 @@ function handleDrop(event) {
   event.preventDefault();
   dom["upload-dropzone"].classList.remove("drag-over");
   if (dom["files"].disabled) return;
-  dom["files"].files = event.dataTransfer.files;
-  dom["files"].dispatchEvent(new Event("change", { bubbles: true }));
+  setUploadFiles(event.dataTransfer.files);
+}
+
+function handlePaste(event) {
+  if (!state.token || event.defaultPrevented
+    || document.activeElement?.matches('input:not([type="file"]), textarea, select, [contenteditable="true"]')) return;
+
+  const clipboard = event.clipboardData;
+  const images = [...(clipboard?.items ?? [])]
+    .filter((item) => item.type.startsWith("image/"))
+    .map((item) => item.getAsFile())
+    .filter(Boolean);
+  const text = images.length ? "" : clipboard?.getData("text/plain");
+  if (!images.length && !text) return;
+
+  event.preventDefault();
+  setStatus("正在處理剪貼簿內容…");
+  runAction(async () => {
+    const now = localDateParts(new Date());
+    const pasted = images.length
+      ? await Promise.all(images.map((image, index) => imageToJpeg(
+        image,
+        buildClipboardFileName("jpg", now, index),
+      )))
+      : [new File([text], buildClipboardFileName("md", now), { type: "text/markdown" })];
+    for (const file of pasted) validateUploadFile(file);
+    setUploadFiles([...dom["files"].files, ...pasted]);
+    setStatus(`已從剪貼簿加入 ${pasted.length} 個文件。`);
+  });
+}
+
+function setUploadFiles(files) {
+  const transfer = new DataTransfer();
+  for (const file of files) transfer.items.add(file);
+  dom["files"].files = transfer.files;
+  updateSelectedFiles();
 }
 
 function updateSelectedFiles() {
   dom["selected-files"].textContent = dom["files"].files.length
     ? `已選擇 ${dom["files"].files.length} 個文件`
     : "尚未選擇文件";
+}
+
+async function imageToJpeg(image, name) {
+  const bitmap = await createImageBitmap(image);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("無法處理剪貼簿圖片。");
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0);
+    const jpeg = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    if (!jpeg) throw new Error("無法將剪貼簿圖片轉成 JPG。");
+    return new File([jpeg], name, { type: "image/jpeg" });
+  } finally {
+    bitmap.close();
+  }
 }
 
 async function downloadSelected() {
@@ -393,6 +453,13 @@ function updateActionButtons() {
   dom["delete-expired-button"].disabled = !state.token || !state.files.some((file) => isExpired(file, today));
 }
 
+function updateSelectionControls() {
+  const selected = state.visibleFiles.filter((file) => state.selectedPaths.has(file.path)).length;
+  dom["select-all"].checked = state.visibleFiles.length > 0 && selected === state.visibleFiles.length;
+  dom["select-all"].indeterminate = selected > 0 && selected < state.visibleFiles.length;
+  updateActionButtons();
+}
+
 function contentsPath(path) {
   return `/repos/${encodeURIComponent(state.config.owner)}/${encodeURIComponent(state.config.repo)}/contents/${encodeRepoPath(path)}`;
 }
@@ -419,7 +486,7 @@ async function apiRequest(path, { method = "GET", body, raw = false } = {}) {
     } catch {
       // Keep the HTTP status when GitHub did not return JSON.
     }
-    throw new Error(message);
+    throw Object.assign(new Error(message), { status: response.status });
   }
   if (raw) return response;
   if (response.status === 204) return null;
@@ -474,8 +541,14 @@ function setBusy(element, busy, label) {
 }
 
 function setStatus(message, error = false) {
+  if (error) {
+    dom["status"].textContent = "";
+    dom["status"].classList.remove("error");
+    alert(message);
+    return;
+  }
   dom["status"].textContent = message;
-  dom["status"].classList.toggle("error", error);
+  dom["status"].classList.remove("error");
 }
 
 async function runAction(action) {

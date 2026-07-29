@@ -43,8 +43,8 @@
           <input id="branch" name="branch" required maxlength="255" value="main" spellcheck="false">
         </label>
         <label>
-          Fine-grained PAT
-          <input id="token" name="token" type="password" autocomplete="new-password" placeholder="公開 repo 唯讀時可留空" spellcheck="false">
+          Fine-grained PAT（private repo 必填）
+          <input id="token" name="token" type="password" autocomplete="new-password" placeholder="必須授權目前的 private repo" spellcheck="false">
         </label>
         <div class="form-actions">
           <button id="connect-button" class="primary" type="submit">連線</button>
@@ -67,9 +67,9 @@
         <form id="upload-form">
           <div class="upload-grid">
             <label id="upload-dropzone" class="file-picker drop-zone">
-              <span class="drop-title">拖曳文件到這裡，或點擊選擇</span>
+              <span class="drop-title">拖曳文件到這裡、點擊選擇，或直接貼上圖片／文字</span>
               <span id="selected-files" class="selected-files">尚未選擇文件</span>
-              <input id="files" name="files" type="file" multiple required accept=".png,.jpg,.jpeg,.xlsx,.xls,.csv,.pptx,.ppt,.pdf,.py,.txt,.md,.docx,.doc,.json,.xml,.yaml,.yml">
+              <input id="files" name="files" type="file" multiple required accept=".png,.jpg,.jpeg,.xlsx,.xls,.csv,.pptx,.ppt,.pdf,.py,.txt,.md,.docx,.doc,.json,.xml,.yaml,.yml,.mp3,.html,.zip">
             </label>
             <label>
               保留期限

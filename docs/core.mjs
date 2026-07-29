@@ -3,7 +3,7 @@ export const MAX_FILE_SIZE = 20 * 1024 * 1024;
 export const ALLOWED_EXTENSIONS = Object.freeze([
   ".png", ".jpg", ".jpeg", ".xlsx", ".xls", ".csv", ".pptx", ".ppt",
   ".pdf", ".py", ".txt", ".md", ".docx", ".doc", ".json", ".xml",
-  ".yaml", ".yml",
+  ".yaml", ".yml", ".mp3", ".html", ".zip",
 ]);
 
 const ALLOWED_EXTENSION_SET = new Set(ALLOWED_EXTENSIONS);
@@ -20,6 +20,19 @@ export function validateRepoConfig({ owner, repo, branch }) {
     throw new Error("Branch 名稱格式不正確。");
   }
   return { owner, repo, branch };
+}
+
+export function describeConnectionError(status, hasToken, fallback) {
+  if (status === 401) return "PAT 無效或已過期，請重新建立 token。";
+  if (status === 403 && hasToken) {
+    return "PAT 權限不足或尚待組織核准；請將此 repo 加入 Repository access，並把 Contents 設為 Read and write。";
+  }
+  if (status === 404 && hasToken) {
+    return "找不到 repo，或 PAT 看不到這個 private repo；請確認 Owner、Repo、Resource owner 與 Repository access。";
+  }
+  if (status === 404) return "找不到公開 repo；連線 private repo 必須輸入已授權的 PAT。";
+  if (status === 409) return "Repo 尚未建立 branch；請先在 private repo 建立 README.md。";
+  return fallback;
 }
 
 function isValidBranch(branch) {
@@ -69,6 +82,10 @@ export function buildStoragePath({ uploadDate, uploadTime, expiresAt, id, origin
   validateUploadFile({ name: originalName, size: 0 });
   const retention = expiresAt ? `expire-${expiresAt}` : "keep";
   return `files/${uploadDate}/${retention}/${uploadTime}-${id}/${originalName}`;
+}
+
+export function buildClipboardFileName(extension, { date, time }, position = 0) {
+  return `clipboard-${date}-${time}${position ? `-${position + 1}` : ""}.${extension}`;
 }
 
 export function parseStoredFilePath(path, extra = {}) {
